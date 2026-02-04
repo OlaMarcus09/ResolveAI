@@ -67,9 +67,16 @@ def coach_node(state: AgentState):
             "4. LOCKING FORMAT: Output a hidden tag at the end: 'ALARM: HH:MM' (24-hour).\n\n"
         )
     else:
-        # --- SCENARIO C: ACTIVE ---
-        prompt = (f"User Goal: {user['resolution']}. User Input: '{state['user_input']}'.\n"
-                  "Provide technical advice in clean plain text. Keep it short (max 2 sentences).")
+        # --- SCENARIO C: ACTIVE (The Mentor Phase) ---
+        prompt = (
+            f"You are an expert Mentor. User Goal: {user['resolution']}.\n"
+            f"User Input: '{state['user_input']}'.\n\n"
+            "RESPONSE RULES:\n"
+            "1. If user asks for a GUIDE or STEPS: Provide a clear, numbered list (Step 1, Step 2, etc).\n"
+            "2. If user asks a simple question: Keep it direct and short (1-2 sentences).\n"
+            "3. STYLE: Motivational but technical. No fluff.\n"
+            "4. FORMATTING: Use plain text. Use numbers (1.) for lists. Do NOT use **bold** or markdown."
+        )
 
     # Generate Response using the Fail-Safe Function
     output = generate_safe(prompt)
