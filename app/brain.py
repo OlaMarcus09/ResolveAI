@@ -11,19 +11,17 @@ load_dotenv()
 # --- CONFIGURATION ---
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-# 🚀 HYBRID STRATEGY:
-# 1. We try 'gemini-1.5-flash' first because it is instant (0.5s).
-# 2. If your key rejects it, we automatically swap to 'gemini-3-pro-preview'.
+# 🚀 FAIL-SAFE GENERATION
+# 1. Try 'gemini-1.5-flash' for speed (0.5s).
+# 2. If it fails (404/Permission), auto-switch to 'gemini-3-pro-preview' (Your verified model).
 def generate_safe(prompt_text):
     try:
-        # Try the fast model first
         response = client.models.generate_content(
             model="gemini-1.5-flash", 
             contents=prompt_text
         )
         return response.text
     except Exception:
-        # 🛡️ FALLBACK: If Flash fails, use the one you KNOW works
         print("⚠️ Flash failed. Switching to Gemini 3 Preview...")
         try:
             response = client.models.generate_content(
@@ -60,17 +58,13 @@ def coach_node(state: AgentState):
             f"User just said: '{state['user_input']}'\n\n"
             "YOUR JOB: Secure a concrete habit loop (Goal + Time).\n\n"
             "LOGIC FLOW (Follow Strictly):\n"
-            "1. CHECK GOAL: Is the resolution vague (like 'I want to start')? If yes, ask: 'What specific habit do you want to build?'\n"
-            "2. CHECK TIME: If the user hasn't stated a time yet, ask: 'What time of day should we schedule this?'\n"
-            "3. CHECK CONFIRMATION: If User says 'Yes'/'Okay' to a proposed time -> YOU MUST LOCK IT.\n"
-            "4. LOCKING FORMAT: When locking, output a hidden tag at the very end: 'ALARM: HH:MM' (24-hour).\n\n"
-            "Example Interaction:\n"
-            "User: 'Read books'\n"
-            "AI: 'Great. What time?'\n"
-            "User: '9pm'\n"
-            "AI: 'Locking reading for 9pm. Correct?'\n"
-            "User: 'Yes'\n"
-            "AI: 'Plan set. ALARM: 21:00'"
+            "1. CHECK TIME IN INPUT: Does the user's *current* message contain a time (e.g. '9am', '11:00')?\n"
+            "2. IF YES (Time Present) + (User Agrees): You MUST LOCK IT.\n"
+            "   -> Output: 'Plan set. ALARM: HH:MM'.\n"
+            "3. IF NO (Time Missing) + (User says 'Yes'): \n"
+            "   -> You probably forgot the context. Do NOT ask about the habit.\n"
+            "   -> REPLY: 'Great. To confirm, please type the time one last time (e.g., Yes 9am).'\n"
+            "4. LOCKING FORMAT: Output a hidden tag at the end: 'ALARM: HH:MM' (24-hour).\n\n"
         )
     else:
         # --- SCENARIO C: ACTIVE ---
