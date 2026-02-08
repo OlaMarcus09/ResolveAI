@@ -7,3 +7,4 @@ opik
 langgraph
 apscheduler
 httpx
+langchain-google-genai
